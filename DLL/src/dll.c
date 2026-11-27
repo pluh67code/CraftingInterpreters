@@ -1,18 +1,7 @@
 #include <stdlib.h>
 #include <limits.h>
+#include <string.h>
 #include "dll.h"
-
-typedef struct Node {
-    char *string;
-    struct Node *prev;
-    struct Node *next;
-} node;
-
-typedef struct DLL {
-    int size;
-    node *head;
-    node *tail;
-} dll;
 
 
 dll *createList(void) {
@@ -26,39 +15,32 @@ dll *createList(void) {
     return newdll;
 }
 
-node *createNode(const char *str) {
-    node *newnode = malloc(sizeof(node));
-    if (newnode == NULL) {
-        return NULL;
+void deleteList(dll *list) {
+    node *curr = list->head;
+
+    while (curr != NULL) {
+        node *next = curr->next;
+        free(curr->string);
+        free(curr);
+        curr = next;
     }
 
-    size_t len = strlen(str) + 1; 
-    newnode->string = malloc(len);
-    if (newnode->string == NULL) {
-        free(newnode);
-        return NULL;
-    }
-    strcpy(newnode->string, str);
-    newnode->prev = NULL;
-    newnode->next = NULL;
-    return newnode;
+    free(list);
 }
-
-typedef enum {
-    INSERT_OK, INSERT_OUT_OF_BOUNDS, INSERT_FULL
-} insertResult;
 
 insertResult insertNode(dll *list, node *n, int spot) {
     if (list->size == INT_MAX) {
         return INSERT_FULL;
     }
 
-    // size + 1 = insert
+    // size + 1 = append
     if (spot <= 0 || spot > (list->size + 1)) {
         return INSERT_OUT_OF_BOUNDS;
     }
 
     if (list->size == 0) {
+        n->prev = NULL;
+        n->next = NULL;
         list->head = n;
         list->tail = n;
     }
@@ -68,21 +50,69 @@ insertResult insertNode(dll *list, node *n, int spot) {
         n->next = NULL;
         list->tail = n;
     }
-    else { // insert somewhere in middle, 2 surrounding nodes
+    else if (spot == 1) {
+        n->prev = NULL;
+        n->next = list->head;
+        list->head->prev = n;
+        list->head = n;
+    }
+    else {
         node *curr = list->head;
         int currIndex = 1;
         while (currIndex != spot) {
             curr = curr->next;
             currIndex++;
         }
+        node *prev = curr->prev;
         
-        node *prev = n->prev;
         prev->next = n;
+        curr->prev = n;
         n->prev = prev;
-        n->next = next;
-        next->prev = n;
+        n->next = curr;
+        
     }
 
     list->size++;
     return INSERT_OK;
 }
+
+node *findNode(dll *list, const char *string) {
+    node *curr = list->head;
+
+    while (curr != NULL && strcmp(string, curr->string) != 0) {
+        curr = curr->next;
+    }
+
+    return curr;
+}
+
+bool deleteNode(dll *list, const char *string) {
+    node *curr = findNode(list, string);
+    if (curr == NULL) return false;
+
+    node *prev = curr->prev;
+    node *next = curr->next;
+
+    if (list->size == 1) {
+        list->head = NULL;
+        list->tail = NULL;
+    }
+    else if (prev == NULL) {
+        next->prev = NULL;
+        list->head = next;
+    }
+    else if (next == NULL) {
+        prev->next = NULL;
+        list->tail = prev;
+    }
+    else {
+        prev->next = next;
+        next->prev = prev;
+    }
+
+    free(curr->string);
+    free(curr);
+    list->size--;
+    return true;
+}
+

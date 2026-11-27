@@ -5,7 +5,7 @@ all: build/final
 run: all
 	./build/final
 
-build/final: build/main.o build/dll.o
+build/final: build/main.o build/dll.o build/node.o
 	@echo "Link final"
 	$(CC) $(CFLAGS) $^ -o $@
 
